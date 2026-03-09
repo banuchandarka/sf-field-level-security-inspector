@@ -1,0 +1,6 @@
+.sfdx
+.sf
+dist
+node_modules
+coverage
+.vscode

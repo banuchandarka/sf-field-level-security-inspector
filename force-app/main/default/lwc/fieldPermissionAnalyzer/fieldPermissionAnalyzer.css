@@ -1,0 +1,126 @@
+/* Main Container Styles */
+.step-header {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+/* User Search Dropdown */
+.user-dropdown {
+    position: relative;
+    top: 0;
+    width: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #dddbda;
+    border-radius: 0.25rem;
+    box-shadow: 0 2px 3px 0 rgba(0, 0, 0, 0.16);
+    z-index: 9001;
+}
+
+.user-item {
+    cursor: pointer;
+    padding: 0.5rem;
+    border-bottom: 1px solid #f3f2f2;
+}
+
+.user-item:hover {
+    background-color: #f3f2f2;
+}
+
+.user-item:last-child {
+    border-bottom: none;
+}
+
+/* Selected User Card */
+.selected-user-card {
+    border-left: 4px solid #0176d3;
+    background-color: #f3f2f2;
+}
+
+/* Profile Badge */
+.profile-badge {
+    background-color: #706e6b;
+    color: white;
+}
+
+/* Summary Cards */
+.summary-card {
+    background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%);
+    border-left: 4px solid #0176d3;
+    min-height: 80px;
+}
+
+/* Results Section */
+.results-section {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Table Styles */
+.slds-table {
+    background-color: white;
+}
+
+.slds-table thead th {
+    background-color: #fafaf9;
+    font-weight: 700;
+}
+
+/* Badge Overrides for Source Types */
+.slds-badge.slds-theme_success {
+    background-color: #2e844a;
+    color: white;
+}
+
+.slds-badge.slds-theme_error {
+    background-color: #ba0517;
+    color: white;
+}
+
+.slds-badge.slds-theme_warning {
+    background-color: #fe9339;
+    color: #080707;
+}
+
+.slds-badge.slds-theme_info {
+    background-color: #0176d3;
+    color: white;
+}
+
+.slds-badge.slds-theme_alt-inverse {
+    background-color: #747474;
+    color: white;
+}
+
+/* Analyze Button */
+.analyze-button {
+    min-width: 200px;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .summary-card {
+        margin-bottom: 0.5rem;
+    }
+
+    .slds-table {
+        font-size: 0.8rem;
+    }
+}
+
+/* Alert Info Style */
+.slds-alert_info {
+    background-color: #032d60;
+}

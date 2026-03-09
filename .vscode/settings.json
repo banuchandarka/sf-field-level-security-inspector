@@ -1,0 +1,14 @@
+{
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/coverage": true,
+        "**/.sfdx": true,
+        "**/.sf": true
+    },
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "[apex]": {
+        "editor.defaultFormatter": "salesforce.salesforcedx-vscode-apex"
+    }
+}

@@ -1,0 +1,417 @@
+<template>
+    <lightning-card title="Field Level Security Analyzer" icon-name="standard:shield">
+        <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+            <!-- Header Description -->
+            <div class="slds-notify slds-notify_alert slds-alert_info slds-m-bottom_medium" role="alert">
+                <lightning-icon
+                    icon-name="utility:info"
+                    alternative-text="Info"
+                    size="x-small"
+                    class="slds-m-right_x-small"
+                ></lightning-icon>
+                <span
+                    >Analyze Field Level Security (FLS) permissions for any user. See exactly which Profile, Permission
+                    Set, or Permission Set Group grants access to specific fields.</span
+                >
+            </div>
+
+            <!-- Step 1: User Search -->
+            <div class="slds-section slds-is-open">
+                <h3 class="slds-section__title">
+                    <span class="slds-truncate step-header" title="Step 1">
+                        <lightning-icon
+                            icon-name="standard:user"
+                            size="small"
+                            class="slds-m-right_x-small"
+                        ></lightning-icon>
+                        Step 1: Search and Select User
+                    </span>
+                </h3>
+                <div class="slds-section__content slds-p-left_medium">
+                    <div class="slds-grid slds-wrap slds-gutters">
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <lightning-input
+                                type="search"
+                                label="Search User"
+                                placeholder="Enter user name, username, or email..."
+                                value={searchTerm}
+                                onchange={handleSearchChange}
+                                class="search-input"
+                            >
+                            </lightning-input>
+
+                            <!-- User Search Results -->
+                            <template if:true={showUserResults}>
+                                <div class="slds-dropdown_fluid user-dropdown">
+                                    <ul class="slds-listbox slds-listbox_vertical" role="listbox">
+                                        <template for:each={userSearchResults} for:item="user">
+                                            <li
+                                                key={user.id}
+                                                class="slds-listbox__item user-item"
+                                                onclick={handleUserSelect}
+                                                data-user-id={user.id}
+                                                data-user-name={user.name}
+                                                data-profile-name={user.profileName}
+                                            >
+                                                <div
+                                                    class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_center"
+                                                >
+                                                    <span class="slds-media__figure">
+                                                        <lightning-avatar
+                                                            src={user.photoUrl}
+                                                            fallback-icon-name="standard:user"
+                                                            size="small"
+                                                        ></lightning-avatar>
+                                                    </span>
+                                                    <span class="slds-media__body">
+                                                        <span
+                                                            class="slds-listbox__option-text slds-listbox__option-text_entity"
+                                                            >{user.name}</span
+                                                        >
+                                                        <span
+                                                            class="slds-listbox__option-meta slds-listbox__option-meta_entity"
+                                                            >{user.username}</span
+                                                        >
+                                                        <span
+                                                            class="slds-listbox__option-meta slds-listbox__option-meta_entity slds-col_bump-top"
+                                                        >
+                                                            <lightning-badge
+                                                                label={user.profileName}
+                                                                class="profile-badge"
+                                                            ></lightning-badge>
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </li>
+                                        </template>
+                                        <template if:true={noUsersFound}>
+                                            <li class="slds-listbox__item">
+                                                <div class="slds-align_absolute-center slds-p-around_small">
+                                                    <span class="slds-text-color_weak">No users found</span>
+                                                </div>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Selected User Display -->
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <template if:true={selectedUser}>
+                                <div class="selected-user-card slds-box slds-theme_shade">
+                                    <div class="slds-grid slds-grid_vertical-align-center">
+                                        <div class="slds-col">
+                                            <p class="slds-text-title_caps slds-m-bottom_xx-small">Selected User</p>
+                                            <p class="slds-text-heading_small">{selectedUser.name}</p>
+                                            <p class="slds-text-body_small slds-text-color_weak">
+                                                {selectedUser.profileName}
+                                            </p>
+                                        </div>
+                                        <div class="slds-col_bump-left">
+                                            <lightning-button-icon
+                                                icon-name="utility:close"
+                                                variant="bare"
+                                                alternative-text="Clear"
+                                                onclick={clearSelectedUser}
+                                            >
+                                            </lightning-button-icon>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Object Selection -->
+            <div class="slds-section slds-is-open slds-m-top_medium">
+                <h3 class="slds-section__title">
+                    <span class="slds-truncate step-header" title="Step 2">
+                        <lightning-icon
+                            icon-name="standard:entity"
+                            size="small"
+                            class="slds-m-right_x-small"
+                        ></lightning-icon>
+                        Step 2: Select Object
+                    </span>
+                </h3>
+                <div class="slds-section__content slds-p-left_medium">
+                    <div class="slds-form-element">
+                        <lightning-combobox
+                            name="objectSelect"
+                            label="Select Object"
+                            placeholder="Choose an object..."
+                            options={objectOptions}
+                            value={selectedObject}
+                            onchange={handleObjectChange}
+                            disabled={isObjectSelectDisabled}
+                            dropdown-alignment="auto"
+                        >
+                        </lightning-combobox>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Field Selection -->
+            <div class="slds-section slds-is-open slds-m-top_medium">
+                <h3 class="slds-section__title">
+                    <span class="slds-truncate step-header" title="Step 3">
+                        <lightning-icon
+                            icon-name="standard:field"
+                            size="small"
+                            class="slds-m-right_x-small"
+                        ></lightning-icon>
+                        Step 3: Select Field
+                    </span>
+                </h3>
+                <div class="slds-section__content slds-p-left_medium">
+                    <div class="slds-form-element">
+                        <lightning-combobox
+                            name="fieldSelect"
+                            label="Select Field"
+                            placeholder="Choose a field..."
+                            options={fieldOptions}
+                            value={selectedField}
+                            onchange={handleFieldChange}
+                            disabled={isFieldSelectDisabled}
+                            dropdown-alignment="auto"
+                        >
+                        </lightning-combobox>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analyze Button -->
+            <div class="slds-m-top_large slds-align_absolute-center">
+                <lightning-button
+                    variant="brand"
+                    label="Analyze Permissions"
+                    onclick={analyzePermissions}
+                    disabled={isAnalyzeDisabled}
+                    icon-name="utility:search"
+                    class="analyze-button"
+                >
+                </lightning-button>
+            </div>
+
+            <!-- Loading Spinner -->
+            <template if:true={isLoading}>
+                <div class="slds-m-top_large">
+                    <lightning-spinner alternative-text="Analyzing..." size="medium"></lightning-spinner>
+                </div>
+            </template>
+
+            <!-- Results Section -->
+            <template if:true={analysisResult}>
+                <div class="slds-m-top_large results-section">
+                    <lightning-card title="Permission Analysis Results" icon-name="standard:approval">
+                        <!-- Summary Header -->
+                        <div class="slds-p-horizontal_medium">
+                            <div class="slds-grid slds-wrap slds-gutters">
+                                <!-- User Info -->
+                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3 slds-m-bottom_small">
+                                    <div class="summary-card slds-box slds-box_x-small">
+                                        <p class="slds-text-title_caps">User</p>
+                                        <p class="slds-text-heading_small">{analysisResult.userName}</p>
+                                        <p class="slds-text-body_small">{analysisResult.userProfileName}</p>
+                                    </div>
+                                </div>
+
+                                <!-- Field Info -->
+                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3 slds-m-bottom_small">
+                                    <div class="summary-card slds-box slds-box_x-small">
+                                        <p class="slds-text-title_caps">Field</p>
+                                        <p class="slds-text-heading_small">{analysisResult.fieldApiName}</p>
+                                        <p class="slds-text-body_small">{analysisResult.objectApiName}</p>
+                                    </div>
+                                </div>
+
+                                <!-- Access Summary -->
+                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3 slds-m-bottom_small">
+                                    <div class="summary-card slds-box slds-box_x-small">
+                                        <p class="slds-text-title_caps">Effective Access</p>
+                                        <div class="slds-grid slds-m-top_x-small">
+                                            <div class="slds-col slds-m-right_small">
+                                                <template if:true={analysisResult.hasReadAccess}>
+                                                    <lightning-badge
+                                                        label="Read ✓"
+                                                        class="slds-theme_success"
+                                                    ></lightning-badge>
+                                                </template>
+                                                <template if:false={analysisResult.hasReadAccess}>
+                                                    <lightning-badge
+                                                        label="Read ✗"
+                                                        class="slds-theme_error"
+                                                    ></lightning-badge>
+                                                </template>
+                                            </div>
+                                            <div class="slds-col">
+                                                <template if:true={analysisResult.hasEditAccess}>
+                                                    <lightning-badge
+                                                        label="Edit ✓"
+                                                        class="slds-theme_success"
+                                                    ></lightning-badge>
+                                                </template>
+                                                <template if:false={analysisResult.hasEditAccess}>
+                                                    <lightning-badge
+                                                        label="Edit ✗"
+                                                        class="slds-theme_error"
+                                                    ></lightning-badge>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Permission Sources Table -->
+                        <div class="slds-p-horizontal_medium slds-m-top_medium">
+                            <h3 class="slds-text-heading_small slds-m-bottom_small">
+                                <lightning-icon
+                                    icon-name="utility:hierarchy"
+                                    size="x-small"
+                                    class="slds-m-right_x-small"
+                                ></lightning-icon>
+                                Permission Sources ({analysisResult.totalSources})
+                            </h3>
+
+                            <template if:true={hasPermissionSources}>
+                                <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
+                                    <thead>
+                                        <tr class="slds-line-height_reset">
+                                            <th scope="col">
+                                                <div class="slds-truncate" title="Source Type">Source Type</div>
+                                            </th>
+                                            <th scope="col">
+                                                <div class="slds-truncate" title="Source Name">Source Name</div>
+                                            </th>
+                                            <th scope="col">
+                                                <div class="slds-truncate" title="Read Access">Read</div>
+                                            </th>
+                                            <th scope="col">
+                                                <div class="slds-truncate" title="Edit Access">Edit</div>
+                                            </th>
+                                            <th scope="col">
+                                                <div class="slds-truncate" title="Actions">Actions</div>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template for:each={analysisResult.permissionSources} for:item="source">
+                                            <tr key={source.permissionSetId}>
+                                                <td>
+                                                    <div class="slds-grid slds-grid_vertical-align-center">
+                                                        <lightning-icon
+                                                            icon-name={source.sourceIcon}
+                                                            size="x-small"
+                                                            class="slds-m-right_x-small"
+                                                        ></lightning-icon>
+                                                        <span class={source.badgeClass}>{source.sourceType}</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div>
+                                                        <strong>{source.sourceName}</strong>
+                                                        <template if:true={source.permissionSetName}>
+                                                            <p class="slds-text-body_small slds-text-color_weak">
+                                                                via: {source.permissionSetName}
+                                                            </p>
+                                                        </template>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <template if:true={source.hasRead}>
+                                                        <lightning-icon
+                                                            icon-name="utility:check"
+                                                            variant="success"
+                                                            size="x-small"
+                                                            alternative-text="Yes"
+                                                        ></lightning-icon>
+                                                    </template>
+                                                    <template if:false={source.hasRead}>
+                                                        <lightning-icon
+                                                            icon-name="utility:close"
+                                                            variant="error"
+                                                            size="x-small"
+                                                            alternative-text="No"
+                                                        ></lightning-icon>
+                                                    </template>
+                                                </td>
+                                                <td>
+                                                    <template if:true={source.hasEdit}>
+                                                        <lightning-icon
+                                                            icon-name="utility:check"
+                                                            variant="success"
+                                                            size="x-small"
+                                                            alternative-text="Yes"
+                                                        ></lightning-icon>
+                                                    </template>
+                                                    <template if:false={source.hasEdit}>
+                                                        <lightning-icon
+                                                            icon-name="utility:close"
+                                                            variant="error"
+                                                            size="x-small"
+                                                            alternative-text="No"
+                                                        ></lightning-icon>
+                                                    </template>
+                                                </td>
+                                                <td>
+                                                    <lightning-button-icon
+                                                        icon-name="utility:new_window"
+                                                        alternative-text="View"
+                                                        title="View in Setup"
+                                                        onclick={navigateToPermissionSet}
+                                                        data-id={source.permissionSetId}
+                                                        variant="bare"
+                                                    >
+                                                    </lightning-button-icon>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </template>
+
+                            <template if:false={hasPermissionSources}>
+                                <div class="slds-illustration slds-illustration_small slds-p-around_medium">
+                                    <div class="slds-text-color_weak slds-text-align_center">
+                                        <lightning-icon
+                                            icon-name="utility:warning"
+                                            variant="warning"
+                                            size="large"
+                                        ></lightning-icon>
+                                        <h3 class="slds-text-heading_medium slds-m-top_small">
+                                            No Permission Sources Found
+                                        </h3>
+                                        <p class="slds-text-body_regular slds-m-top_x-small">
+                                            This user does not have any explicit FLS permissions for this field through
+                                            their Profile, Permission Sets, or Permission Set Groups.
+                                        </p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </lightning-card>
+                </div>
+            </template>
+
+            <!-- Error Display -->
+            <template if:true={errorMessage}>
+                <div class="slds-m-top_large">
+                    <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">
+                        <lightning-icon
+                            icon-name="utility:error"
+                            alternative-text="Error"
+                            size="x-small"
+                            class="slds-m-right_x-small"
+                        ></lightning-icon>
+                        <span>{errorMessage}</span>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>
