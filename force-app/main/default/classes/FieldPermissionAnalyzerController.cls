@@ -118,6 +118,12 @@ public with sharing class FieldPermissionAnalyzerController {
         result.objectApiName = objectApiName;
         result.fieldApiName = fieldApiName;
         
+        if (String.isBlank(userId) || String.isBlank(objectApiName) || String.isBlank(fieldApiName)) {
+            result.isSuccess = false;
+            result.errorMessage = 'User, object, and field are required.';
+            return result;
+        }
+        
         try {
             // Get User details
             User targetUser = [
@@ -148,11 +154,41 @@ public with sharing class FieldPermissionAnalyzerController {
             
             // Collect all Permission Set IDs
             Set<Id> permissionSetIds = new Set<Id>();
-            Map<Id, PermissionSetAssignment> assignmentMap = new Map<Id, PermissionSetAssignment>();
             
             for (PermissionSetAssignment psa : assignments) {
                 permissionSetIds.add(psa.PermissionSetId);
-                assignmentMap.put(psa.PermissionSetId, psa);
+            }
+            
+            if (permissionSetIds.isEmpty()) {
+                result.isSuccess = true;
+                result.totalSources = 0;
+                return result;
+            }
+            
+            // Query object-level permissions and index by source (Permission Set / Profile)
+            Map<Id, Boolean> sourceCanReadObject = new Map<Id, Boolean>();
+            Map<Id, Boolean> sourceCanEditObject = new Map<Id, Boolean>();
+            List<ObjectPermissions> objectPermissions = [
+                SELECT
+                    ParentId,
+                    PermissionsRead,
+                    PermissionsEdit,
+                    PermissionsViewAllRecords,
+                    PermissionsModifyAllRecords
+                FROM ObjectPermissions
+                WHERE ParentId IN :permissionSetIds
+                AND SObjectType = :objectApiName
+            ];
+            
+            for (ObjectPermissions op : objectPermissions) {
+                Boolean canReadObject = op.PermissionsRead == true ||
+                    op.PermissionsViewAllRecords == true ||
+                    op.PermissionsModifyAllRecords == true;
+                Boolean canEditObject = op.PermissionsEdit == true ||
+                    op.PermissionsModifyAllRecords == true;
+                
+                sourceCanReadObject.put(op.ParentId, canReadObject);
+                sourceCanEditObject.put(op.ParentId, canEditObject);
             }
             
             // Query Field Permissions
@@ -181,8 +217,15 @@ public with sharing class FieldPermissionAnalyzerController {
             for (FieldPermissions fp : fieldPermissions) {
                 PermissionSourceDetail source = new PermissionSourceDetail();
                 source.permissionSetId = fp.ParentId;
-                source.hasRead = fp.PermissionsRead == true;
-                source.hasEdit = fp.PermissionsEdit == true;
+                
+                Boolean canReadObject = sourceCanReadObject.containsKey(fp.ParentId) ?
+                    sourceCanReadObject.get(fp.ParentId) : false;
+                Boolean canEditObject = sourceCanEditObject.containsKey(fp.ParentId) ?
+                    sourceCanEditObject.get(fp.ParentId) : false;
+                
+                // Effective field access requires both object-level and field-level permission.
+                source.hasRead = fp.PermissionsRead == true && canReadObject;
+                source.hasEdit = fp.PermissionsEdit == true && canEditObject;
                 
                 // Determine the source type and name
                 if (fp.Parent.IsOwnedByProfile) {
